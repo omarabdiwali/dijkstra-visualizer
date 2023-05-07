@@ -1,8 +1,55 @@
 import styles from "@/styles/Home.module.css"
 
-export async function getPath(pos, size, past, next, walls, start, end, prev) {
-  let squares = getValidSquares(pos, size, past, walls, start)
-  let values = await colorSquares(squares, next, end, size, pos, prev);
+export async function getDijkstraPath(start, points, end, walls, size) {
+  let curStart = start;
+  let allPoints = [...points, end];
+
+  for (let i = 0; i < allPoints.length; i++) {
+    let point = allPoints[i];
+    
+    let queue = [curStart];
+    let past = [];
+    let next = [];
+    let prev = {};
+    let found = false;
+
+    let pPoints = [start, ...points, end];
+    pPoints = pPoints.filter(x => x != point);
+
+    while (queue.length > 0 && !found) {
+      let nextPos = queue.shift();
+      let result = await dijkstraPath(nextPos, size, past, next, walls, curStart, point, prev, pPoints, i);
+      let sqs = result[1];
+      
+      found = result[0]
+      queue = queue.concat(sqs);
+      next = sqs;
+      past = [...past, ...sqs]; 
+    }
+
+    curStart = point;
+  }
+}
+
+export async function getAStarPath(start, end, size, walls, points) {
+  let curStart = start;
+  let allPoints = [...points, end];
+
+  for (let i = 0; i < allPoints.length; i++) {
+    let point = allPoints[i];
+    
+    let pPoints = [start, ...points, end];
+    pPoints = pPoints.filter(x => x != point);
+
+    await aStarPath(curStart, point, size, walls, pPoints, i);
+    curStart = point;
+  }
+
+}
+
+async function dijkstraPath(pos, size, past, next, walls, start, end, prev, points, count) {
+  let squares = getValidSquares(pos, size, past, walls, start, points)
+  let values = await colorSquares(squares, next, end, size, pos, prev, count);
   
   let found = values[0];
   squares = values[1];
@@ -12,6 +59,87 @@ export async function getPath(pos, size, past, next, walls, start, end, prev) {
   }
 
   return [found, squares];
+}
+
+async function aStarPath(start, end, size, walls, points, count) {
+  let squares = [start];
+  let cameFrom = {};
+
+  let gScore = {};
+  gScore[start] = 0;
+  
+  let fScore = {};
+  fScore[start] = hValue(start, end, size);
+
+  let past = [];
+  let next = [];
+
+  while (squares.length > 0) {
+    let current = getFScore(squares, fScore);
+    
+    if (current == end) {
+      await colorSquares([], next, end, size, 0, [], count);
+      await getShortestPath(start, current, cameFrom, size);
+      break;
+    }
+
+    let index = squares.indexOf(current);
+    squares.splice(index, 1);
+
+    let neighbors = getValidSquares(current, size, [], walls, start, points);
+
+    for (let i = 0; i < neighbors.length; i++) {
+      const neighbor = neighbors[i];
+      let g = gScore[neighbor] || Infinity;
+
+      let tentGScore = gScore[current] + hValue(current, neighbor, size);
+
+      if (tentGScore < g) {
+        cameFrom[neighbor] = current;
+        gScore[neighbor] = tentGScore;
+        fScore[neighbor] = tentGScore + hValue(neighbor, end, size);
+
+        if (squares.indexOf(neighbor) == -1) {
+          squares.push(neighbor);
+        }
+      }
+    }
+
+    neighbors = neighbors.filter(x => !past.includes(x) && x != end);
+    await colorSquares(neighbors, next, end, size, 0, [], count);
+
+    next = neighbors;
+    past = [...past, ...neighbors];
+  }
+
+  return cameFrom;
+}
+
+
+function getFScore(squares, fScore) {
+  let lowest = Infinity;
+  let value = 0;
+
+  for (let i = 0; i < squares.length; i++) {
+    const element = squares[i];
+    let f = fScore[element] || Infinity;
+
+    if (f < lowest) {
+      lowest = f;
+      value = element;
+    }
+  }
+  
+  return value;
+}
+
+function hValue(start, end, size) {
+  let stValues = getPosValues(start, size);
+  let endValues = getPosValues(end, size);
+
+  let h = Math.abs(stValues[0] - endValues[0]) + Math.abs(stValues[1] - endValues[1]);
+
+  return h;
 }
 
 async function getShortestPath(start, end, prev, size) {
@@ -25,29 +153,105 @@ async function getShortestPath(start, end, prev, size) {
     found = prevPos;
   }
 
+
   for (let i = 1; i < seq.length; i++) {
     const pos = seq[i];
     let sq = getSquare(pos, size);
 
     sq.classList.replace(`${styles.change}`, `${styles.path}`);
+    sq.classList.add("path");
     sq.style.backgroundColor = "yellow";
     await sleep(80);
   }
 }
 
+function getValidSquares(pos, size, past, walls, start, check) {
+  let squares = [];
+  let bottom = size * 24;
+
+  if (pos % size != 0) {
+    squares.push(pos + 1);
+  } if (pos <= bottom) {
+    squares.push(pos + size);
+  } if (pos % size != 1) {
+    squares.push(pos - 1);
+  } if (pos > size) {
+    squares.push(pos - size);
+  }
+
+  squares = squares.filter(x => !past.includes(x) && x != start);
+  squares = squares.filter(x => !walls.includes(x));
+  squares = squares.filter(x => !check.includes(x));
+
+  return squares;
+}
+
+async function colorSquares(squares, next, end, size, prevPos, prev, count) {
+  let realSq = [];
+
+  for (let i = 0; i < next.length; i++) {
+    const pos = next[i];
+    let sq = getSquare(pos, size);
+
+    if (!sq.classList.contains("path")) {
+      sq.classList.add(`${styles.change}`);
+      sq.style.backgroundColor = count % 2 == 0 ? "darkblue" : "purple";
+    }
+  }
+
+  for (let i = 0; i < squares.length; i++) {
+    const pos = squares[i];
+    let sq = getSquare(pos, size);
+
+    if (!sq.classList.contains("path")) {
+      prev[pos] = prevPos;
+
+      if (pos == end) {
+        return [true, realSq];
+      }
+
+      await sleep(10);
+      if (sq.classList.contains(`${styles.change}`)) sq.classList.remove(`${styles.change}`);
+      sq.style.backgroundColor = count % 2 == 0 ? "skyblue" : "pink";
+      realSq.push(pos);
+    }
+  }
+
+  await sleep(20);
+  return [false, realSq];
+}
+
+function getPosValues(pos, size) {
+  let row = Math.floor(pos / size);
+  let col = (pos - (row * size) - 1);
+    
+  if (pos % size === 0) {
+    col = size - 1;
+    row -= 1;
+  }
+
+  return [row, col]
+}
+
+export function getSquare(pos, size) {
+  let values = getPosValues(pos, size);
+  let row = values[0], col = values[1];
+  let square = document.getElementById("board").childNodes.item(`${row}`).children[col];
+
+  return square;
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 export async function createMaze(x, y, width, height, orientation, walls, gaps) {
-  if (width < 5 || height < 5) {
+  if (width < 2 || height < 2) {
     return;
   }
 
-  console.log(width, height);
-  console.log(x, y);
-  console.log(orientation);
-
   let horizontal = orientation == "horizontal";
   
-  let wx = x + (horizontal ? 0 : Math.floor(Math.random() * (width - 3)));
-  let wy = y + (horizontal ? Math.floor(Math.random() * (height - 3)) : 0);
+  let wx = x + (horizontal ? 0 : Math.floor(Math.random() * (width - 2)));
+  let wy = y + (horizontal ? Math.floor(Math.random() * (height - 2)) : 0);
 
   let px = wx + (horizontal ? Math.floor(Math.random() * width): 0)
   let py = wy + (horizontal ? 0 : Math.floor(Math.random() * height))
@@ -62,6 +266,8 @@ export async function createMaze(x, y, width, height, orientation, walls, gaps) 
 
     if (wx != px || wy != py) {
       addWalls(wy, wx, pos, walls, gaps);
+    } else {
+      addDoor(wy, wx, pos, gaps);
     }
     
     wx += dx;
@@ -83,6 +289,16 @@ export async function createMaze(x, y, width, height, orientation, walls, gaps) 
   createMaze(nx, ny, w, h, getOrientation(w, h), walls, gaps);
 }
 
+function addDoor(row, col, pos, gaps) {
+  let sq = document.getElementById("board").childNodes.item(`${row}`).children[col];
+  if (sq.classList.contains("wall")) {
+    sq.classList.remove("wall");
+  }
+  
+  sq.style.backgroundColor = null;
+  gaps.push(pos);
+}
+
 function getOrientation(w, h) {
   if (w < h) {
     return "horizontal";
@@ -93,82 +309,14 @@ function getOrientation(w, h) {
   }
 }
 
-function getValidSquares(pos, size, past, walls, start) {
-  let squares = [];
-  let bottom = size * 24;
-
-  if (pos % size != 0) {
-    squares.push(pos + 1);
-  } if (pos <= bottom) {
-    squares.push(pos + size);
-  } if (pos % size != 1) {
-    squares.push(pos - 1);
-  } if (pos > size) {
-    squares.push(pos - size);
-  }
-
-  squares = squares.filter(x => !past.includes(x) && x != start);
-  squares = squares.filter(x => !walls.includes(x));
-
-  return squares;
-}
-
 function addWalls(row, col, pos, walls, gaps) {
-  if (walls.indexOf(pos) > -1 || gaps.indexOf(pos) > -1) {
-    return;
-  }
+  if (walls.includes(pos) || gaps.includes(pos)) return;
+
   let sq = document.getElementById("board").childNodes.item(`${row}`).children[col];
   sq.classList.add("wall");
   sq.style.backgroundColor = "black";
 }
 
-async function colorSquares(squares, next, end, size, prevPos, prev) {
-  let realSq = [];
-
-  for (let i = 0; i < next.length; i++) {
-    const pos = next[i];
-    let sq = getSquare(pos, size);
-
-    sq.classList.add(`${styles.change}`);
-    sq.style.backgroundColor = "darkblue";
-  }
-
-  for (let i = 0; i < squares.length; i++) {
-    const pos = squares[i];
-    let sq = getSquare(pos, size);
-    prev[pos] = prevPos;
-
-    if (pos == end) {
-      return [true, realSq];
-    }
-
-    await sleep(10);
-    sq.style.backgroundColor = "skyblue";
-    realSq.push(pos);
-  }
-
-  await sleep(20);
-  return [false, realSq];
+function random(num) {
+  return Math.floor(Math.random() * num);
 }
-
-function getPosValues(pos, size) {
-  let row = Math.floor(pos / size);
-  let col = (pos - (row * size) - 1);
-    
-  if (pos % size === 0) {
-    col = size - 1;
-    row -= 1;
-  }
-
-  return [row, col]
-}
-
-function getSquare(pos, size) {
-  let values = getPosValues(pos, size);
-  let row = values[0], col = values[1];
-  let square = document.getElementById("board").childNodes.item(`${row}`).children[col];
-
-  return square;
-}
-
-const sleep = ms => new Promise(r => setTimeout(r, ms));

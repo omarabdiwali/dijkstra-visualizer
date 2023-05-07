@@ -3,6 +3,7 @@
   height: 20px;
   display: inline-block;
   background-color: grey;
+  cursor: default;
 }
 
 .App {
