@@ -14,7 +14,7 @@ export default function Dropdown({ title = null, options, onClick }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const anchorRef = useRef(null);
 
-  const handleMenuItemClick = (event, index, option) => {
+  const handleMenuItemClick = (index, option) => {
     setSelectedIndex(index);
     onClick(option);
     setOpen(false);
@@ -34,7 +34,7 @@ export default function Dropdown({ title = null, options, onClick }) {
 
   return (
     <Fragment>
-      <ButtonGroup style={{ margin: "10px", height: "2rem" }} variant="contained" ref={anchorRef} aria-label="split button">
+      <ButtonGroup style={{ margin: "10px", height: "2rem" }} variant="outlined" ref={anchorRef} aria-label="split button">
         <Button onClick={handleToggle}>{!title ? options[selectedIndex] : title}</Button>
         <Button
           size="small"
@@ -71,7 +71,7 @@ export default function Dropdown({ title = null, options, onClick }) {
                   {options.map((option, index) => (
                     <MenuItem
                       key={option}
-                      onClick={(event) => handleMenuItemClick(event, index, option)}
+                      onClick={() => handleMenuItemClick(index, option)}
                     >
                       {option}
                     </MenuItem>
