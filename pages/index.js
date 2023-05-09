@@ -82,11 +82,6 @@ export default function Home() {
   }
 
   const findPath = async (option) => {
-    if (!start || !end) {
-      enqueueSnackbar("Add Start / End Nodes", { autoHideDuration: 3000, variant: "info" });
-      return;
-    }
-
     if (option.includes("Dijkstra")) {
       setAlgorithm("Visualize Dijkstra");
     } else {
@@ -218,12 +213,16 @@ export default function Home() {
   }
 
   const runAlgorithm = async () => {
+    if (!start || !end) {
+      enqueueSnackbar("Add Start / End Nodes", { autoHideDuration: 3000, variant: "info" });
+      return;
+    }
+    
     if (algorithm == "Visualize Dijkstra") {
       await getDijkstraPath(start, points, end, walls, WIDTH);
     } else if (algorithm == "Visualize A*") {
       await getAStarPath(start, end, WIDTH, walls, points);
     } else {
-      console.log(algorithm);
       enqueueSnackbar("Select an algorithm", { variant: "info", autoHideDuration: 3000 });
     }
   }
