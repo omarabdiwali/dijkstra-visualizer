@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react"
+import { useSnackbar } from 'notistack';
 import styles from "@/styles/Home.module.css"
 import WindowSizeListener from "react-window-size-listener";
 import { createMaze, getAStarPath, getDijkstraPath, getSquare } from "@/utils/helperFunctions";
+import Dropdown from "@/utils/dropdown";
+import { Button } from "@mui/material";
 
 export default function Home() {
   const WIDTH = 55;
@@ -18,6 +21,11 @@ export default function Home() {
   const [current, setCurrent] = useState("start");
   const [count, setCount] = useState(0);
   const [hold, setHold] = useState(false);
+  const [algorithm, setAlgorithm] = useState("Visualize");
+  const { enqueueSnackbar } = useSnackbar();
+
+  const nodes = ["Start Node", "Point Node", "Wall Node", "End Node", "Eraser"];
+  const algos = ["Dijkstra's Algorithm", "A* Search"];
 
   for (let i = 1; i <= WIDTH; i++) {
     rowLength.push(i);
@@ -31,17 +39,17 @@ export default function Home() {
     setOffset(document.getElementById("board").getBoundingClientRect());
   }, [])
 
-  const changeCurrent = (e) => {
-    if (e.target.value == "Start Node") {
+  const changeCurrent = (option) => {
+    if (option == "Start Node") {
       setCurrent("start");
-    } else if (e.target.value == "Wall Node") {
+    } else if (option == "Wall Node") {
       setCurrent("wall");
-    } else if (e.target.value == "Point Node") {
+    } else if (option == "Point Node") {
       setCurrent("point");
-    } else if (e.target.value == "Eraser") {
+    } else if (option == "Eraser") {
       setCurrent("erase");
-    } else {
-      setCurrent("end")
+    } else if (option == "End Node") {
+      setCurrent("end");
     }
   }
 
@@ -72,20 +80,18 @@ export default function Home() {
     checkCollisions(pos, sq);
     checkCollisions(pos, sq, "points", true);
 
-    setCurrent("end");
+    // setCurrent("end");
   }
 
-  const findPath = async (e) => {
-    if (!start || !end) {
+  const findPath = async (option) => {
+    if (!start || !end || current.includes("Running")) {
       return;
     }
 
-    if (e.target.value == "Visualize Dijkstra") {
-      setCurrent("Running Dijkstra...");
-      await getDijkstraPath(start, points, end, walls, WIDTH);
+    if (option.includes("Dijkstra")) {
+      setAlgorithm("Visualize Dijkstra");
     } else {
-      setCurrent("Running A*...");
-      return await getAStarPath(start, end, WIDTH, walls, points);
+      setAlgorithm("Visualize A*");
     }
   }
 
@@ -109,6 +115,7 @@ export default function Home() {
         sq.style.backgroundColor = "orange";
         setPoints(points => [...points, pos]);
         sq.innerText = `${count}`;
+        sq.classList.add(`${styles.noselect}`);
 
         setCount(count + 1);
 
@@ -184,22 +191,51 @@ export default function Home() {
       ifWalls ? setWalls(temp) : setPoints(temp);
       ifWalls ? null : sq.innerText = "";
 
-      if (order) orderPoints(temp);
+      if (order) {
+        orderPoints(temp);
+        sq.classList.remove(`${styles.noselect}`);
+      };
+    }
+  }
+
+  const eraseAll = () => {
+    for (let i = 1; i <= 1375; i++) {
+      let sq = getSquare(i, WIDTH); 
+      sq.style.backgroundColor = "";
+      sq.classList = i % 2 === 0 ? `${styles.cell} ${styles.odd}` : `${styles.cell} ${styles.even}`;
+      
+      if (i == start) {
+        sq.style.backgroundColor = "green"
+      } else if (i == end) {
+        sq.style.backgroundColor = "red";
+      } else if (walls.includes(i)) {
+        sq.style.backgroundColor = "black";
+      } else if (points.includes(i)) {
+        sq.style.backgroundColor = "orange";
+        sq.classList.add(`${styles.noselect}`);
+        sq.innerText = points.indexOf(i);
+      }
+    }
+  }
+
+  const runAlgorithm = async () => {
+    if (algorithm == "Visualize Dijkstra") {
+      await getDijkstraPath(start, points, end, walls, WIDTH);
+    } else if (algorithm == "Visualize A*") {
+      await getAStarPath(start, end, WIDTH, walls, points);
+    } else {
+      console.log(algorithm);
+      enqueueSnackbar("Select an algorithm", { variant: "info", autoHideDuration: 3000 });
     }
   }
 
 
   return (
-    <div>
-      <input type="button" value="Start Node" onClick={e => changeCurrent(e)}></input>
-      <input style={{ marginLeft: "5px", marginRight: "5px" }} type="button" value="Wall Node" onClick={e => changeCurrent(e)}></input>
-      <input style={{ marginRight: "5px" }} type="button" value="End Node" onClick={e => changeCurrent(e)}></input>
-      <input style={{ marginRight: "5px" }} type="button" value="Point Node" onClick={e => changeCurrent(e)}></input>
-      <input style={{ marginRight: "5px" }} type="button" value="Eraser" onClick={e => changeCurrent(e)}></input>
-      {/* <input style={{ marginRight: "5px" }} type="button" value="Maze" onClick={drawMaze}></input> */}
-      <span style={{marginLeft: "20%", marginRight: "20%"}}>Current: {current}</span>
-      <input style={{ marginRight: "5px" }} type="button" value="Visualize Dijkstra" onClick={e => findPath(e)}></input>
-      <input type="button" value="Visualize A*" onClick={e => findPath(e)}></input>
+    <>
+      <Dropdown options={nodes} onClick={changeCurrent} />
+      <Dropdown options={algos} title="Algorithms" onClick={findPath} />
+      <Button onClick={eraseAll}>Erase Board</Button>
+      <Button onClick={runAlgorithm}>{algorithm}</Button>
       <div className={styles.App}>
         <WindowSizeListener onResize={() => {
           setOffset(document.getElementById("board").getBoundingClientRect());
@@ -220,6 +256,6 @@ export default function Home() {
           </div>
         </WindowSizeListener>
       </div>
-    </div>
+    </>
   )
 }
