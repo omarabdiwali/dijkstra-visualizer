@@ -79,12 +79,11 @@ export default function Home() {
 
     checkCollisions(pos, sq);
     checkCollisions(pos, sq, "points", true);
-
-    // setCurrent("end");
   }
 
   const findPath = async (option) => {
-    if (!start || !end || current.includes("Running")) {
+    if (!start || !end) {
+      enqueueSnackbar("Add Start / End Nodes", { autoHideDuration: 3000, variant: "info" });
       return;
     }
 
