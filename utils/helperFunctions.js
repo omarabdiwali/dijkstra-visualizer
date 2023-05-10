@@ -112,7 +112,7 @@ async function aStarPath(start, end, size, walls, points, count) {
     past = [...past, ...neighbors];
   }
 
-  return cameFrom;
+  return;
 }
 
 
@@ -159,7 +159,7 @@ async function getShortestPath(start, end, prev, size) {
     let sq = getSquare(pos, size);
 
     sq.classList.replace(`${styles.change}`, `${styles.path}`);
-    sq.classList.add("path");
+    // sq.classList.add("path");
     sq.style.backgroundColor = "yellow";
     await sleep(80);
   }
@@ -193,31 +193,36 @@ async function colorSquares(squares, next, end, size, prevPos, prev, count) {
     const pos = next[i];
     let sq = getSquare(pos, size);
 
-    if (!sq.classList.contains("path")) {
+    if (!(sq.style.backgroundColor == "yellow")) {
       sq.classList.add(`${styles.change}`);
+      sq.style.backgroundColor = count % 2 == 0 ? "skyblue" : "pink";
       sq.style.backgroundColor = count % 2 == 0 ? "darkblue" : "purple";
     }
   }
+
+  await sleep(10);
 
   for (let i = 0; i < squares.length; i++) {
     const pos = squares[i];
     let sq = getSquare(pos, size);
 
-    if (!sq.classList.contains("path")) {
+    if (!(sq.style.backgroundColor == "yellow")) {
       prev[pos] = prevPos;
 
       if (pos == end) {
         return [true, realSq];
       }
-
-      await sleep(10);
-      if (sq.classList.contains(`${styles.change}`)) sq.classList.remove(`${styles.change}`);
+      
+      if (sq.style.backgroundColor == "darkblue" || sq.style.backgroundColor == "purple") {
+        sq.classList.remove(`${styles.change}`);
+      }
+      
       sq.style.backgroundColor = count % 2 == 0 ? "skyblue" : "pink";
       realSq.push(pos);
+      await sleep(25);
     }
   }
 
-  await sleep(20);
   return [false, realSq];
 }
 
