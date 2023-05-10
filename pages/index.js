@@ -82,6 +82,8 @@ export default function Home() {
   }
 
   const findPath = async (option) => {
+    if (!start || !end) return;
+
     if (option.includes("Dijkstra")) {
       setAlgorithm("Visualize Dijkstra");
     } else {
@@ -213,10 +215,10 @@ export default function Home() {
   }
 
   const runAlgorithm = async () => {
-    if (!start || !end) {
-      enqueueSnackbar("Add Start / End Nodes", { autoHideDuration: 3000, variant: "info" });
-      return;
-    }
+    // if (!start || !end) {
+    //   enqueueSnackbar("Add Start / End Nodes", { autoHideDuration: 3000, variant: "info" });
+    //   return;
+    // }
     
     if (algorithm == "Visualize Dijkstra") {
       await getDijkstraPath(start, points, end, walls, WIDTH);
