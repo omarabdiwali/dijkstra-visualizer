@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useSnackbar } from 'notistack';
 import styles from "@/styles/Home.module.css"
 import WindowSizeListener from "react-window-size-listener";
-import { createMaze, getAStarPath, getDijkstraPath, getSquare } from "@/utils/helperFunctions";
+import { createMaze, getAStarPath, getDijkstraPath, getSquare, readMaze } from "@/utils/helperFunctions";
 import Dropdown from "@/utils/dropdown";
 import { Button } from "@mui/material";
 
@@ -90,8 +90,8 @@ export default function Home() {
   }
 
   const addNode = (e) => {
-    let x = Math.ceil((e.clientX - offset.left) / SIZE);
-    let y = Math.ceil((e.clientY - offset.top) / SIZE);
+    let x = Math.ceil((e.pageX - offset.left) / SIZE);
+    let y = Math.ceil((e.pageY - offset.top) / SIZE);
 
     let pos = (y - 1) * WIDTH + x;
     let sq = getSquare(pos, WIDTH);
@@ -149,18 +149,6 @@ export default function Home() {
         checkCollisions(pos, sq, "points", true);
       }
     }
-  }
-
-  const drawMaze = () => {
-    createMaze(0, 0, WIDTH, LENGTH, "vertical", [], []);
-  }
-  
-  const onHold = () => {
-    setHold(true);
-  }
-
-  const onUp = () => {
-    setHold(false);
   }
 
   const orderPoints = (pts) => {
@@ -227,6 +215,19 @@ export default function Home() {
     }
   }
 
+  const drawMaze = () => {
+    
+  }
+
+  const onHold = () => {
+    setHold(true);
+  }
+
+  const onUp = () => {
+    setHold(false);
+  }
+  
+
 
   return (
     <>
@@ -234,6 +235,7 @@ export default function Home() {
       <Dropdown options={algos} title="Algorithms" onClick={findPath} />
       <Button onClick={eraseAll}>Erase Board</Button>
       <Button onClick={runAlgorithm}>{algorithm}</Button>
+      <Button onClick={drawMaze}>Create Maze</Button>
       <div className={styles.App}>
         <WindowSizeListener onResize={() => {
           setOffset(document.getElementById("board").getBoundingClientRect());
