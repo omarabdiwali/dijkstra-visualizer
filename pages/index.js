@@ -235,7 +235,7 @@ export default function Home() {
       <Dropdown options={algos} title="Algorithms" onClick={findPath} />
       <Button onClick={eraseAll}>Erase Board</Button>
       <Button onClick={runAlgorithm}>{algorithm}</Button>
-      <Button onClick={drawMaze}>Create Maze</Button>
+      {/* <Button onClick={drawMaze}>Create Maze</Button> */}
       <div className={styles.App}>
         <WindowSizeListener onResize={() => {
           setOffset(document.getElementById("board").getBoundingClientRect());
