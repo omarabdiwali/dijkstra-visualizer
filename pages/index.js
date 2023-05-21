@@ -5,7 +5,6 @@ import { getAStarPath, getDijkstraPath, getSquare } from "@/utils/helperFunction
 import styles from "@/styles/Home.module.css"
 import Dropdown from "@/utils/dropdown";
 import WindowSizeListener from "react-window-size-listener";
-import Checkbox from "@mui/material/Checkbox"
 import Button from "@mui/material/Button";
 
 export default function Home() {
@@ -222,14 +221,6 @@ export default function Home() {
     <>
       <Dropdown options={nodes} onClick={changeCurrent} />
       <Dropdown options={algos} title="Algorithms" onClick={findPath} />
-      <Checkbox
-        checked={diagonals}
-        onChange={() => setDiagonals(!diagonals)}
-        name="Diagonals"
-        color="primary"
-        size="small"
-      />
-      <Button onClick={() => setDiagonals(!diagonals)}>Diagonals</Button>
       <Button onClick={eraseAll}>Erase Board</Button>
       <Button onClick={runAlgorithm}>{algorithm}</Button>
 
