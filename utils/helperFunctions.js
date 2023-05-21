@@ -1,6 +1,6 @@
 import styles from "@/styles/Home.module.css"
 
-export async function getDijkstraPath(start, points, end, walls, size) {
+export async function getDijkstraPath(start, points, end, walls, size, diagonals) {
   let curStart = start;
   let allPoints = [...points, end];
 
@@ -18,7 +18,7 @@ export async function getDijkstraPath(start, points, end, walls, size) {
 
     while (queue.length > 0 && !found) {
       let nextPos = queue.shift();
-      let result = await dijkstraPath(nextPos, size, past, next, walls, curStart, point, prev, pPoints, i);
+      let result = await dijkstraPath(nextPos, size, past, next, walls, curStart, point, prev, pPoints, i, diagonals);
       let sqs = result[1];
       
       found = result[0]
@@ -31,7 +31,7 @@ export async function getDijkstraPath(start, points, end, walls, size) {
   }
 }
 
-export async function getAStarPath(start, end, size, walls, points) {
+export async function getAStarPath(start, end, size, walls, points, diagonals) {
   let curStart = start;
   let allPoints = [...points, end];
 
@@ -41,14 +41,14 @@ export async function getAStarPath(start, end, size, walls, points) {
     let pPoints = [start, ...points, end];
     pPoints = pPoints.filter(x => x != point);
 
-    await aStarPath(curStart, point, size, walls, pPoints, i);
+    await aStarPath(curStart, point, size, walls, pPoints, i, diagonals);
     curStart = point;
   }
 
 }
 
-async function dijkstraPath(pos, size, past, next, walls, start, end, prev, points, count) {
-  let squares = getValidSquares(pos, size, past, walls, start, points)
+async function dijkstraPath(pos, size, past, next, walls, start, end, prev, points, count, diagonals) {
+  let squares = getValidSquares(pos, size, past, walls, start, points, diagonals)
   let values = await colorSquares(squares, next, end, size, pos, prev, count);
   
   let found = values[0];
@@ -61,7 +61,7 @@ async function dijkstraPath(pos, size, past, next, walls, start, end, prev, poin
   return [found, squares];
 }
 
-async function aStarPath(start, end, size, walls, points, count) {
+async function aStarPath(start, end, size, walls, points, count, diagonals) {
   let squares = [start];
   let cameFrom = {};
 
@@ -86,7 +86,7 @@ async function aStarPath(start, end, size, walls, points, count) {
     let index = squares.indexOf(current);
     squares.splice(index, 1);
 
-    let neighbors = getValidSquares(current, size, [], walls, start, points);
+    let neighbors = getValidSquares(current, size, [], walls, start, points, diagonals);
 
     for (let i = 0; i < neighbors.length; i++) {
       const neighbor = neighbors[i];
@@ -159,13 +159,12 @@ async function getShortestPath(start, end, prev, size) {
     let sq = getSquare(pos, size);
 
     sq.classList.replace(`${styles.change}`, `${styles.path}`);
-    // sq.classList.add("path");
     sq.style.backgroundColor = "yellow";
     await sleep(80);
   }
 }
 
-function getValidSquares(pos, size, past, walls, start, check) {
+function getValidSquares(pos, size, past, walls, start, check, diagonals) {
   let squares = [];
   let bottom = size * 24;
 
@@ -177,6 +176,24 @@ function getValidSquares(pos, size, past, walls, start, check) {
     squares.push(pos - 1);
   } if (pos > size) {
     squares.push(pos - size);
+  }
+
+  if (diagonals) {
+    if (pos < bottom) {
+      if (pos % size != 0) {
+        squares.push(pos + size + 1);
+      } if (pos % size != 1) {
+        squares.push(pos + size - 1);
+      }
+    }
+
+    if (pos > size) {
+      if (pos % size != 0) {
+        squares.push(pos - size + 1);
+      } if (pos % size != 1) {
+        squares.push(pos - size - 1);
+      }
+    }
   }
 
   squares = squares.filter(x => !past.includes(x) && x != start);
@@ -247,81 +264,3 @@ export function getSquare(pos, size) {
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-export async function createMaze(x, y, width, height, orientation, walls, gaps) {
-  if (width < 2 || height < 2) {
-    return;
-  }
-
-  let horizontal = orientation == "horizontal";
-  
-  let wx = x + (horizontal ? 0 : Math.floor(Math.random() * (width - 2)));
-  let wy = y + (horizontal ? Math.floor(Math.random() * (height - 2)) : 0);
-
-  let px = wx + (horizontal ? Math.floor(Math.random() * width): 0)
-  let py = wy + (horizontal ? 0 : Math.floor(Math.random() * height))
-
-  let dx = horizontal ? 1 : 0;
-  let dy = horizontal ? 0 : 1;
-
-  let length = horizontal ? width : height;
-
-  for (let i = 0; i < length; i++) {
-    let pos = wy * 25 + wx;
-
-    if (wx != px || wy != py) {
-      addWalls(wy, wx, pos, walls, gaps);
-    } else {
-      addDoor(wy, wx, pos, gaps);
-    }
-    
-    wx += dx;
-    wy += dy;
-  }
-
-  await sleep(1000);
-
-  let nx = x, ny = y;
-  let values = horizontal ? [width, wy - y + 1] : [wx - x + 1, height];
-  let w = values[0], h = values[1];
-  createMaze(nx, ny, w, h, getOrientation(w, h), walls, gaps);
-
-  let val = horizontal ? [x, wy + 1] : [wx + 1, y];
-  nx = val[0], ny = val[1];
-  let val1 = horizontal ? [width, y + height - wy - 1] : [x + width - wx - 1, height];
-  w = val1[0], h = val1[1];
-
-  createMaze(nx, ny, w, h, getOrientation(w, h), walls, gaps);
-}
-
-function addDoor(row, col, pos, gaps) {
-  let sq = document.getElementById("board").childNodes.item(`${row}`).children[col];
-  if (sq.classList.contains("wall")) {
-    sq.classList.remove("wall");
-  }
-  
-  sq.style.backgroundColor = null;
-  gaps.push(pos);
-}
-
-function getOrientation(w, h) {
-  if (w < h) {
-    return "horizontal";
-  } else if (h < w) {
-    return "vertical";
-  } else {
-    return Math.random() < 0.5 ? "horizontal" : "vertical";
-  }
-}
-
-function addWalls(row, col, pos, walls, gaps) {
-  if (walls.includes(pos) || gaps.includes(pos)) return;
-
-  let sq = document.getElementById("board").childNodes.item(`${row}`).children[col];
-  sq.classList.add("wall");
-  sq.style.backgroundColor = "black";
-}
-
-function random(num) {
-  return Math.floor(Math.random() * num);
-}

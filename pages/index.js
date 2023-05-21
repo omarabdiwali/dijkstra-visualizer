@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react"
 import { useSnackbar } from 'notistack';
+import { getAStarPath, getDijkstraPath, getSquare } from "@/utils/helperFunctions";
+
 import styles from "@/styles/Home.module.css"
-import WindowSizeListener from "react-window-size-listener";
-import { createMaze, getAStarPath, getDijkstraPath, getSquare, readMaze } from "@/utils/helperFunctions";
 import Dropdown from "@/utils/dropdown";
-import { Button } from "@mui/material";
+import WindowSizeListener from "react-window-size-listener";
+import Checkbox from "@mui/material/Checkbox"
+import Button from "@mui/material/Button";
 
 export default function Home() {
   const WIDTH = 55;
@@ -13,6 +15,7 @@ export default function Home() {
   const rowLength = [];
   const brd = [];
 
+  const [diagonals, setDiagonals] = useState(false);
   const [offset, setOffset] = useState();
   const [start, setStart] = useState();
   const [end, setEnd] = useState();
@@ -207,40 +210,34 @@ export default function Home() {
     }
     
     if (algorithm == "Visualize Dijkstra") {
-      await getDijkstraPath(start, points, end, walls, WIDTH);
+      await getDijkstraPath(start, points, end, walls, WIDTH, diagonals);
     } else if (algorithm == "Visualize A*") {
-      await getAStarPath(start, end, WIDTH, walls, points);
+      await getAStarPath(start, end, WIDTH, walls, points, diagonals);
     } else {
       enqueueSnackbar("Select an algorithm", { variant: "info", autoHideDuration: 3000 });
     }
   }
 
-  const drawMaze = () => {
-    
-  }
-
-  const onHold = () => {
-    setHold(true);
-  }
-
-  const onUp = () => {
-    setHold(false);
-  }
-  
-
-
   return (
     <>
       <Dropdown options={nodes} onClick={changeCurrent} />
       <Dropdown options={algos} title="Algorithms" onClick={findPath} />
+      <Checkbox
+        checked={diagonals}
+        onChange={() => setDiagonals(!diagonals)}
+        name="Diagonals"
+        color="primary"
+        size="small"
+      />
+      <Button onClick={() => setDiagonals(!diagonals)}>Diagonals</Button>
       <Button onClick={eraseAll}>Erase Board</Button>
       <Button onClick={runAlgorithm}>{algorithm}</Button>
-      {/* <Button onClick={drawMaze}>Create Maze</Button> */}
+
       <div className={styles.App}>
         <WindowSizeListener onResize={() => {
           setOffset(document.getElementById("board").getBoundingClientRect());
         }}>
-          <div id="board" onClick={e => addNode(e)} onMouseDown={onHold} onMouseUp={onUp} onMouseMove={e => hold && current == "wall" ? addNode(e) : ""}>
+          <div id="board" onClick={e => addNode(e)} onMouseDown={() => setHold(true)} onMouseUp={() => setHold(false)} onMouseMove={e => hold && current == "wall" ? addNode(e) : ""}>
             {brd.map((row, idx) => {
               return (
                 <div className={styles.row} key={idx}>
