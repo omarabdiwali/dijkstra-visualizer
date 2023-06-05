@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react"
 import { useSnackbar } from 'notistack';
-import { getAStarPath, getDijkstraPath, getSquare } from "@/utils/helperFunctions";
+import { getSquare } from "@/utils/helperFunctions";
 
 import styles from "@/styles/Home.module.css"
 import Dropdown from "@/utils/dropdown";
 import WindowSizeListener from "react-window-size-listener";
 import Button from "@mui/material/Button";
+
+import getDijkstraPath from "@/utils/algorithms/dijkstra";
+import getAStarPath from "@/utils/algorithms/aStar";
 
 export default function Home() {
   const WIDTH = 55;
