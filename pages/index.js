@@ -24,6 +24,7 @@ export default function Home() {
   const [walls, setWalls] = useState([]);
   const [points, setPoints] = useState([]);
   const [current, setCurrent] = useState("start");
+  const [progress, setProgress] = useState(false);
   const [count, setCount] = useState(0);
   const [hold, setHold] = useState(false);
   const [algorithm, setAlgorithm] = useState("Visualize");
@@ -101,7 +102,7 @@ export default function Home() {
     let pos = (y - 1) * WIDTH + x;
     let sq = getSquare(pos, WIDTH);
 
-    if (current.includes("Running")) {
+    if (progress) {
       return;
     }
 
@@ -212,9 +213,13 @@ export default function Home() {
     }
     
     if (algorithm == "Visualize Dijkstra") {
+      setProgress(true);
       await getDijkstraPath(start, points, end, walls, WIDTH, diagonals);
+      setProgress(false);
     } else if (algorithm == "Visualize A*") {
+      setProgress(true);
       await getAStarPath(start, end, WIDTH, walls, points, diagonals);
+      setProgress(false);
     } else {
       enqueueSnackbar("Select an algorithm", { variant: "info", autoHideDuration: 3000 });
     }
