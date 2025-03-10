@@ -7,7 +7,6 @@ export async function getShortestPath(start, end, prev, size) {
   while (found != start) {
     let prevPos = prev[found];
     seq.unshift(prevPos);
-
     found = prevPos;
   }
 
