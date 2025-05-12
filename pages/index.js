@@ -199,7 +199,7 @@ export default function Home() {
 
   const generateMaze = async () => {
     if (progress) return;
-    setWalls([]);
+    eraseAll(true);
     setProgress(true);
     await mazeGeneration(addNode);
     setProgress(false);
