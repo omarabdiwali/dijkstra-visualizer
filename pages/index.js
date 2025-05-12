@@ -1,24 +1,23 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useSnackbar } from 'notistack';
 import { getSquare } from "@/utils/helperFunctions";
 
 import styles from "@/styles/Home.module.css"
 import Dropdown from "@/utils/dropdown";
-import WindowSizeListener from "react-window-size-listener";
 import Button from "@mui/material/Button";
 
 import getDijkstraPath from "@/utils/algorithms/dijkstra";
 import getAStarPath from "@/utils/algorithms/aStar";
+import mazeGeneration from "@/utils/algorithms/mazeGeneration";
+
+export const WIDTH = 55;
+export const HEIGHT = 25;
 
 export default function Home() {
-  const WIDTH = 55;
-  const LENGTH = 25;
-  const SIZE = 20;
   const rowLength = [];
   const brd = [];
 
   const [diagonals, setDiagonals] = useState(false);
-  const [offset, setOffset] = useState();
   const [start, setStart] = useState();
   const [end, setEnd] = useState();
   const [walls, setWalls] = useState([]);
@@ -37,13 +36,9 @@ export default function Home() {
     rowLength.push(i);
   }
   
-  for (let index = 1; index <= LENGTH; index++) {
+  for (let index = 1; index <= HEIGHT; index++) {
     brd.push(rowLength);
   }
-
-  useEffect(() => {
-    setOffset(document.getElementById("board").getBoundingClientRect());
-  }, [])
 
   const changeCurrent = (option) => {
     if (option == "Start Node") {
@@ -95,22 +90,15 @@ export default function Home() {
     }
   }
 
-  const addNode = (e) => {
-    let x = Math.ceil((e.pageX - offset.left) / SIZE);
-    let y = Math.ceil((e.pageY - offset.top) / SIZE);
-
-    let pos = (y - 1) * WIDTH + x;
+  const addNode = (pos, nodeType) => {
     let sq = getSquare(pos, WIDTH);
+    if (progress || !sq) return;
 
-    if (progress) {
-      return;
-    }
-
-    if (current == "start" || current == "end") {
+    if (nodeType == "start" || nodeType == "end") {
       changeNode(sq, pos, current);
     }
 
-    else if (current == "point") {
+    else if (nodeType == "point") {
       if (!points.includes(pos)) {
         sq.style.backgroundColor = "orange";
         setPoints(points => [...points, pos]);
@@ -129,7 +117,7 @@ export default function Home() {
       }
     }
 
-    else if (current == "wall") {
+    else if (nodeType == "wall") {
       if (!walls.includes(pos)) {
         sq.style.backgroundColor = "black";
         setWalls(walls => [...walls, pos]);
@@ -144,7 +132,7 @@ export default function Home() {
       }
     }
 
-    else if (current == "erase") {
+    else if (nodeType == "erase") {
       sq.style.backgroundColor = null;
       if (start == pos) {
         setStart(null);
@@ -173,7 +161,6 @@ export default function Home() {
     let index = ifWalls ? walls.indexOf(pos) : points.indexOf(pos);
 
     if (index > -1) {
-      console.log(type);
       let temp = ifWalls ? [...walls] : [...points];
       temp.splice(index, 1);
       ifWalls ? setWalls(temp) : setPoints(temp);
@@ -186,7 +173,9 @@ export default function Home() {
     }
   }
 
-  const eraseAll = () => {
+  const eraseAll = (clearWalls) => {
+    if (progress) return;
+
     for (let i = 1; i <= 1375; i++) {
       let sq = getSquare(i, WIDTH); 
       sq.style.backgroundColor = "";
@@ -196,7 +185,7 @@ export default function Home() {
         sq.style.backgroundColor = "green"
       } else if (i == end) {
         sq.style.backgroundColor = "red";
-      } else if (walls.includes(i)) {
+      } else if (!clearWalls && walls.includes(i)) {
         sq.style.backgroundColor = "black";
       } else if (points.includes(i)) {
         sq.style.backgroundColor = "orange";
@@ -204,6 +193,16 @@ export default function Home() {
         sq.innerText = points.indexOf(i);
       }
     }
+
+    if (clearWalls) setWalls([]);
+  }
+
+  const generateMaze = async () => {
+    if (progress) return;
+    setWalls([]);
+    setProgress(true);
+    await mazeGeneration(addNode);
+    setProgress(false);
   }
 
   const runAlgorithm = async () => {
@@ -211,7 +210,8 @@ export default function Home() {
       enqueueSnackbar("Add Start / End Nodes", { autoHideDuration: 3000, variant: "info" });
       return;
     }
-    
+
+    if (progress) return;
     if (algorithm == "Visualize Dijkstra") {
       setProgress(true);
       await getDijkstraPath(start, points, end, walls, WIDTH, diagonals);
@@ -229,28 +229,26 @@ export default function Home() {
     <>
       <Dropdown options={nodes} onClick={changeCurrent} />
       <Dropdown options={algos} title="Algorithms" onClick={findPath} />
-      <Button onClick={eraseAll}>Erase Board</Button>
+      <Button onClick={generateMaze}>Generate Maze</Button>
+      <Button onClick={() => eraseAll(true)}>Clear Walls</Button>
+      <Button onClick={() => eraseAll(false)}>Erase Path</Button>
       <Button onClick={runAlgorithm}>{algorithm}</Button>
 
       <div className={styles.App}>
-        <WindowSizeListener onResize={() => {
-          setOffset(document.getElementById("board").getBoundingClientRect());
-        }}>
-          <div id="board" onClick={e => addNode(e)} onMouseDown={() => setHold(true)} onMouseUp={() => setHold(false)} onMouseMove={e => hold && current == "wall" ? addNode(e) : ""}>
-            {brd.map((row, idx) => {
-              return (
-                <div className={styles.row} key={idx}>
-                  {row.map((cell, id) => {
-                    const pos = idx * WIDTH + cell;
-                    return (
-                      <div className={(idx + id + 2) % 2 === 0 ? `${styles.cell} ${styles.even}` : `${styles.cell} ${styles.odd}`} id={`${pos}`} key={id}></div>
-                    )
-                  })}
-                </div>
-              )
-            })}
-          </div>
-        </WindowSizeListener>
+        <div id="board" onClick={e => addNode(parseInt(e.target.id), current)} onMouseDown={() => setHold(true)} onMouseUp={() => setHold(false)} onMouseMove={e => hold && current == "wall" ? addNode(parseInt(e.target.id), current) : ""}>
+          {brd.map((row, idx) => {
+            return (
+              <div className={styles.row} key={idx}>
+                {row.map((cell, id) => {
+                  const pos = idx * WIDTH + cell;
+                  return (
+                    <div className={(idx + id + 2) % 2 === 0 ? `${styles.cell} ${styles.even}` : `${styles.cell} ${styles.odd}`} id={`${pos}`} key={id}></div>
+                  )
+                })}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </>
   )

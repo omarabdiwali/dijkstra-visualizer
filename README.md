@@ -1,6 +1,6 @@
 # Pathfinding Visualizer
 
-This project is a React-based web application that visualizes pathfinding algorithms like Dijkstra's Algorithm and A* Search.  It allows users to interactively create a grid, place start and end nodes, add obstacles (walls), designate intermediate points, and then visualize how these algorithms find the shortest path.
+This project is a React-based web application that visualizes pathfinding algorithms like Dijkstra's Algorithm and A* Search.  It allows users to generate a maze or interactively create a grid, place start and end nodes, add obstacles (walls), designate intermediate points, and then visualize how these algorithms find the shortest path.
 
 ### **Website: https://dijkstra-visualizer.vercel.app**
 
@@ -15,6 +15,8 @@ This project is a React-based web application that visualizes pathfinding algori
 *   **Algorithm Selection:**
     *   Dijkstra's Algorithm
     *   A\* Search
+*   **Maze Generation:**
+    *   Recursive Division Maze Generation
 *   **Visualization:**
     *   The algorithm's search process is visualized step-by-step, highlighting explored nodes in blue/purple shades.
     *   The final shortest path is highlighted in yellow.
@@ -36,6 +38,7 @@ The application is built using the following key files:
     * `getPosValues(pos, size)`: Gets row and column value based on index and board size.
 *   **`dijkstra.js`:** Implements Dijkstra's algorithm.  The `getDijkstraPath` function orchestrates the visualization, handling multiple waypoints (intermediate points).  `dijkstraPath` performs a single step of Dijkstra's algorithm, exploring neighbors and coloring them.
 *   **`aStar.js`:** Implements the A\* search algorithm. `getAStarPath` manages the overall flow, handling multiple waypoints.  `aStarPath` performs a single step, similar to Dijkstra's, but using a heuristic (`hValue`) to prioritize exploration towards the target. The heuristic is implemented and working.
+*   **`mazeGeneration.js`:** Implementation of the recursive division maze generation. `recursiveDivision` handles the recursion and setting which nodes will become walls, with the main `mazeGeneration` performing the initial step to start the generation.
 
 ## How it Works (Algorithm Logic)
 
@@ -71,6 +74,7 @@ Both `dijkstra.js` and `aStar.js` follow a similar structure:
 
 *   **Dijkstra's Algorithm:**  A classic algorithm for finding the shortest path in a graph with non-negative edge weights.  It explores nodes in order of their distance from the start node.
 *   **A\* Search:**  An informed search algorithm that uses a heuristic function to estimate the distance from a node to the goal. This heuristic guides the search, making it more efficient than Dijkstra's in many cases.  The heuristic used here is the Manhattan distance.
+*   **Recursive Division Maze Generation:**  This algorithm works as follows: Begin with the maze's space with no walls (chamber). Divide the chamber with a randomly positioned wall (or multiple walls) where each wall contains a randomly positioned passage opening within it. Then recursively repeat the process on the subchambers until all chambers are minimum sized. This method results in mazes with long straight walls crossing their space, making it easier to see which areas to avoid.
 *   **State Management (React):**  The `useState` hook is used extensively to manage the state of the application, such as the positions of nodes, the presence of walls, the selected algorithm, and the visualization progress.
 *   **Event Handling (React):**  Event handlers like `onClick`, `onMouseDown`, `onMouseUp`, and `onMouseMove` are used to handle user interactions with the grid.
 *   **Asynchronous Operations:** The `async/await` keywords are used to make the visualization appear smooth and step-by-step.  The `sleep` function introduces delays to control the speed of the visualization.
@@ -79,12 +83,9 @@ Both `dijkstra.js` and `aStar.js` follow a similar structure:
 ## Potential Improvements
 
 *   **More Algorithms:** Implement other pathfinding algorithms (e.g., Breadth-First Search, Depth-First Search).
-*   **Diagonal Movement:** Fully Implement the ability to toggle diagonal movement on/off.
 *   **Weighted Nodes:**  Allow users to add weighted nodes (e.g., terrain with different traversal costs).
-*   **Maze Generation:** Add functionality to automatically generate mazes.
 *   **Performance Optimization:** For very large grids, consider using more efficient data structures for the open and closed sets (e.g., a priority queue).  Also, optimize the DOM manipulation to minimize reflows and repaints.
 *   **UI/UX Enhancements:**
-    *   Add a clear "Reset" button to clear only the path, not the walls/points.
     *   Provide options to adjust the visualization speed.
     *   Display the cost of the path found.
     *   Improve the styling and visual feedback.
