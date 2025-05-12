@@ -201,7 +201,8 @@ export default function Home() {
     if (progress) return;
     eraseAll(true);
     setProgress(true);
-    await mazeGeneration(addNode);
+    const mazeWalls = await mazeGeneration(start, points, end);
+    setWalls(mazeWalls);
     setProgress(false);
   }
 
